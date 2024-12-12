@@ -1,53 +1,27 @@
+import os
+import glob
 import copy
 import json
-import os
-
 from loguru import logger
-
 from magic_pdf.data.data_reader_writer import FileBasedDataWriter
 from magic_pdf.libs.draw_bbox import draw_layout_bbox, draw_span_bbox
 from magic_pdf.pipe.OCRPipe import OCRPipe
 from magic_pdf.pipe.TXTPipe import TXTPipe
 from magic_pdf.pipe.UNIPipe import UNIPipe
-
-# todo: 设备类型选择 （？）
-
-
-def json_md_dump(
-        pipe,
-        md_writer,
-        pdf_name,
-        content_list,
-        md_content,
-        orig_model_list,
-):
-    # 写入模型结果到 model.json
-
-    md_writer.write_string(
-        f'{pdf_name}_model.json',
-        json.dumps(orig_model_list, ensure_ascii=False, indent=4)
-    )
-
-    # 写入中间结果到 middle.json
-    md_writer.write_string(
-        f'{pdf_name}_middle.json',
-        json.dumps(pipe.pdf_mid_data, ensure_ascii=False, indent=4)
-    )
-
-    # text文本结果写入到 conent_list.json
-    md_writer.write_string(
-        f'{pdf_name}_content_list.json',
-        json.dumps(content_list, ensure_ascii=False, indent=4)
-    )
-
-    # 写入结果到 .md 文件中
-    md_writer.write_string(
-        f'{pdf_name}.md',
-        md_content,
-    )
+from jinja2 import Template
 
 
-# 可视化
+def json_md_dump(pipe, md_writer, pdf_name, content_list, md_content, orig_model_list):
+    # 寫入模型結果到 model.json
+    md_writer.write_string(f'{pdf_name}_model.json', json.dumps(orig_model_list, ensure_ascii=False, indent=4))
+    # 寫入中間結果到 middle.json
+    md_writer.write_string(f'{pdf_name}_middle.json', json.dumps(pipe.pdf_mid_data, ensure_ascii=False, indent=4))
+    # text 文本結果寫入到 content_list.json
+    md_writer.write_string(f'{pdf_name}_content_list.json', json.dumps(content_list, ensure_ascii=False, indent=4))
+    # 寫入結果到 .md 文件中
+    md_writer.write_string(f'{pdf_name}.md', md_content)
+
+
 def draw_visualization_bbox(pdf_info, pdf_bytes, local_md_dir, pdf_file_name):
     # 画布局框，附带排序结果
     draw_layout_bbox(pdf_info, pdf_bytes, local_md_dir, pdf_file_name)
@@ -55,52 +29,144 @@ def draw_visualization_bbox(pdf_info, pdf_bytes, local_md_dir, pdf_file_name):
     draw_span_bbox(pdf_info, pdf_bytes, local_md_dir, pdf_file_name)
 
 
-def pdf_parse_main(
-        pdf_path: str,
-        parse_method: str = 'auto',
-        model_json_path: str = None,
-        is_json_md_dump: bool = True,
-        is_draw_visualization_bbox: bool = True,
-        output_dir: str = None
-):
-    """执行从 pdf 转换到 json、md 的过程，输出 md 和 json 文件到 pdf 文件所在的目录.
-
-    :param pdf_path: .pdf 文件的路径，可以是相对路径，也可以是绝对路径
-    :param parse_method: 解析方法， 共 auto、ocr、txt 三种，默认 auto，如果效果不好，可以尝试 ocr
-    :param model_json_path: 已经存在的模型数据文件，如果为空则使用内置模型，pdf 和 model_json 务必对应
-    :param is_json_md_dump: 是否将解析后的数据写入到 .json 和 .md 文件中，默认 True，会将不同阶段的数据写入到不同的 .json 文件中（共3个.json文件），md内容会保存到 .md 文件中
-    :param is_draw_visualization_bbox: 是否绘制可视化边界框，默认 True，会生成布局框和 span 框的图像
-    :param output_dir: 输出结果的目录地址，会生成一个以 pdf 文件名命名的文件夹并保存所有结果
+def generate_webpage(content_list, output_path, pdf_name):
     """
+    將 content_list 轉換為網頁，支持 LaTeX 渲染
+    """
+    html_template = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{{ pdf_name }} - PDF Content Viewer</title>
+        <!-- MathJax configuration -->
+        <script>
+        window.MathJax = {
+          tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$','$$'], ['\\[','\\]']]
+          },
+          startup: {
+            pageReady: function() {
+              // 在頁面準備就緒後進行渲染
+              return MathJax.typesetPromise().then(function() {
+                console.log("MathJax rendered!");
+              });
+            }
+          }
+        };
+        </script>
+        <!-- 載入 MathJax 3 -->
+        <script id="MathJax-script" async
+            src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"></script>
+
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 0;
+                background-color: #f4f4f9;
+                color: #333;
+            }
+            header {
+                background-color: #007acc;
+                color: white;
+                padding: 10px 20px;
+                text-align: center;
+            }
+            .content {
+                margin: 20px;
+                padding: 20px;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            }
+            .image-container {
+                margin: 20px 0;
+                text-align: center;
+            }
+            .image-container img {
+                max-width: 100%;
+                height: auto;
+                border-radius: 8px;
+                border: 1px solid #ccc;
+            }
+            .image-caption {
+                font-style: italic;
+                margin-top: 10px;
+                color: #555;
+            }
+            .text-block {
+                line-height: 1.6;
+                margin-bottom: 20px;
+            }
+            footer {
+                background-color: #007acc;
+                color: white;
+                text-align: center;
+                padding: 10px 20px;
+                margin-top: 20px;
+                border-top: 4px solid #005f99;
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <h1>{{ pdf_name }} - PDF Content Viewer</h1>
+        </header>
+        <div class="content">
+            {% for item in content_list %}
+                {% if item.type == "image" %}
+                    <div class="image-container">
+                        <img src="{{ item.img_path }}" alt="Image">
+                        {% for caption in item.img_caption %}
+                            <div class="image-caption">{{ caption }}</div>
+                        {% endfor %}
+                    </div>
+                {% elif item.type == "text" %}
+                    <div class="text-block">
+                        {{ item.text | safe }}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        <footer>
+            <p>Generated by PDF Content Viewer</p>
+        </footer>
+    </body>
+    </html>
+    """
+
+    from jinja2 import Template
+    template = Template(html_template)
+    rendered_html = template.render(content_list=content_list, pdf_name=pdf_name)
+    html_file = os.path.join(output_path, f"{pdf_name}.html")
+
+    with open(html_file, "w", encoding="utf-8") as f:
+        f.write(rendered_html)
+
+    logger.info(f"Webpage generated: {html_file}")
+
+def pdf_parse_main(pdf_path, output_dir, parse_method='auto', model_json_path=None, is_json_md_dump=True, is_draw_visualization_bbox=True):
     try:
         pdf_name = os.path.basename(pdf_path).split('.')[0]
-        pdf_path_parent = os.path.dirname(pdf_path)
-
-        if output_dir:
-            output_path = os.path.join(output_dir, pdf_name)
-        else:
-            output_path = os.path.join(pdf_path_parent, pdf_name)
-
+        output_path = os.path.join(output_dir, pdf_name)
         output_image_path = os.path.join(output_path, 'images')
+        os.makedirs(output_image_path, exist_ok=True)
 
-        # 获取图片的父路径，为的是以相对路径保存到 .md 和 conent_list.json 文件中
-        image_path_parent = os.path.basename(output_image_path)
-
-        pdf_bytes = open(pdf_path, 'rb').read()  # 读取 pdf 文件的二进制数据
-
+        pdf_bytes = open(pdf_path, 'rb').read()
         orig_model_list = []
 
         if model_json_path:
-            # 读取已经被模型解析后的pdf文件的 json 原始数据，list 类型
             model_json = json.loads(open(model_json_path, 'r', encoding='utf-8').read())
             orig_model_list = copy.deepcopy(model_json)
         else:
             model_json = []
 
-        # 执行解析步骤
         image_writer, md_writer = FileBasedDataWriter(output_image_path), FileBasedDataWriter(output_path)
 
-        # 选择解析方式
+        # 選擇解析方式
         if parse_method == 'auto':
             jso_useful_key = {'_pdf_type': '', 'model_list': model_json}
             pipe = UNIPipe(pdf_bytes, jso_useful_key, image_writer)
@@ -110,37 +176,41 @@ def pdf_parse_main(
             pipe = OCRPipe(pdf_bytes, model_json, image_writer)
         else:
             logger.error('unknown parse method, only auto, ocr, txt allowed')
-            exit(1)
+            return
 
-        # 执行分类
+        # 分類和解析
         pipe.pipe_classify()
-
-        # 如果没有传入模型数据，则使用内置模型解析
         if len(model_json) == 0:
-            pipe.pipe_analyze()  # 解析
+            pipe.pipe_analyze()
             orig_model_list = copy.deepcopy(pipe.model_list)
-
-        # 执行解析
         pipe.pipe_parse()
 
-        # 保存 text 和 md 格式的结果
-        content_list = pipe.pipe_mk_uni_format(image_path_parent, drop_mode='none')
-        md_content = pipe.pipe_mk_markdown(image_path_parent, drop_mode='none')
-
+        # 保存 JSON 和 MD 文件
+        content_list = pipe.pipe_mk_uni_format(os.path.basename(output_image_path), drop_mode='none')
+        md_content = pipe.pipe_mk_markdown(os.path.basename(output_image_path), drop_mode='none')
         if is_json_md_dump:
             json_md_dump(pipe, md_writer, pdf_name, content_list, md_content, orig_model_list)
 
+        # 可視化
         if is_draw_visualization_bbox:
             draw_visualization_bbox(pipe.pdf_mid_data['pdf_info'], pdf_bytes, output_path, pdf_name)
+
+        # 生成網頁
+        generate_webpage(content_list, output_path, pdf_name)
 
     except Exception as e:
         logger.exception(e)
 
 
-# 测试
 if __name__ == '__main__':
     current_script_dir = os.path.dirname(os.path.abspath(__file__))
-    demo_names = ['demo1', 'demo2', 'small_ocr']
-    for name in demo_names:
-        file_path = os.path.join(current_script_dir, f'{name}.pdf')
-        pdf_parse_main(file_path)
+    input_dir = os.path.join(current_script_dir, 'input_pdfs')
+    output_dir = os.path.join(current_script_dir, 'output_results')
+
+    os.makedirs(input_dir, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
+
+    pdf_files = glob.glob(os.path.join(input_dir, '*.pdf'))
+
+    for pdf_path in pdf_files:
+        pdf_parse_main(pdf_path, output_dir)
