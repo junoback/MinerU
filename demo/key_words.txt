@@ -1,11 +1,35 @@
-band &
-diagram |
-MOS |
-SONOS |
-Device |
-Paolo x
-Srabanti x
-Ph.D x
-Dr. x
-Stephen x
-Giuseppe x
+Schottky barrier |
+Schottky contact |
+Schottky model |
+Schottky junction |
+Ohmic contact |
+Ohmic contacts |
+Ohmic junction |
+MS contact |
+MS contacts |
+metal and an either n-type |
+Metal and semiconductor |
+metal and semiconductor |
+Metal-Semiconductor |
+metal-Semiconductor |
+metal-n-semiconductor |
+metal-p-semiconductor |
+metal-n-type semiconductor |
+metal-p-type semiconductor |
+metal n-type semiconductor |
+metal p-type semiconductor |
+metal/n-type semiconductor |
+metal/p-type semiconductor |
+metal and an n-type semiconductor |
+metal and an p-type semiconductor |
+a metal and a semiconductor |
+metal on n-type |
+metal on p-type |
+Depletion-type contacts on n- and p-type substrates |
+Depletion-type contacts to n-type substrates |
+Energy band diagram under A |
+Energy bands in the presence of interface states |
+metal (left) end n-type |
+semiconductor contact |
+Semiconductor with one shallow donor level |
+shows an intimate contact |

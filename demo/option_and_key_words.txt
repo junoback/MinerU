@@ -1,0 +1,50 @@
+@ignore_case = true
+@handle_plurals = true
+@whole_word = false
+@output_html_name = Gallery of MS Junctions
+
+# Keywords below
+Schottky barrier |
+Schottky contact |
+Schottky diode |
+Schottky model |
+Schottky junction |
+Ohmic contact |
+Ohmic junction |
+Injecting contact |
+Noninjecting contact |
+Blocking contact |
+Nonblocking contact |
+MS contact |
+MS junction |
+MS diode |
+metal and an either $n$ -type |
+metal and semiconductor |
+metal-Semiconductor |
+metal-n-semiconductor |
+metal-p-semiconductor |
+metal-p-type semiconductor |
+metal $n$ -type semiconductor |
+metal p-type semiconductor |
+metal/n-type semiconductor |
+metal/p-type semiconductor |
+metal and an $n$ -type semiconductor |
+metal and an p-type semiconductor |
+a metal and a semiconductor |
+metal on $n$ -type |
+metal on p-type |
+Depletion-type contacts on $n$ - and p-type substrates |
+Depletion-type contacts to $n$ -type substrates |
+Depiction of the distribution of surface states |
+Depiction of the energy levels |
+The energy band diagram of an MSJ |
+An illustration of the surface states |
+Energy band diagram under A |
+Energy bands in the presence of interface states |
+metal (left) end $n$ -type |
+semiconductor contact |
+Semiconductor with one shallow donor level |
+under different biasing conditions |
+shows an intimate contact |
+energy band diagrams for a metal |
+variables in an MS |
